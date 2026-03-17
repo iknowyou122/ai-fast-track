@@ -1,0 +1,8 @@
+fastapi
+uvicorn
+typer
+pydantic
+instructor
+openai
+python-dotenv
+litellm
