@@ -30,6 +30,99 @@ This is a **Structured Data Extraction Tool** based on Large Language Models (LL
 - **`app/prompts/`**: Centralized management for LLM prompts.
 - **`app/utils/`**: General utilities like Logger and JSON parser.
 
+### 🗺️ Architecture Flowcharts
+
+#### 1. Project Map
+This diagram shows where the important files live and what each area is responsible for.
+
+```mermaid
+flowchart TD
+  ROOT[ai-fast-track/] --> README[README.md\nProject overview]
+  ROOT --> RUN[run.py\nCLI entrypoint]
+  ROOT --> ENV[.env.example\nEnvironment variable template]
+  ROOT --> REQ[requirements.txt\nPython dependencies]
+  ROOT --> APP[app/\nApplication code]
+  ROOT --> TESTS[tests/\nAutomated tests]
+
+  APP --> MAIN[main.py\nFastAPI + Typer commands]
+  APP --> CONFIG[config.py\nLoads env settings]
+  APP --> SERVICES[services/\nBusiness orchestration]
+  APP --> EXTRACTORS[extractors/\nLLM and Mock extractors]
+  APP --> SCHEMAS[schemas/\nPydantic output models]
+  APP --> PROMPTS[prompts/\nLLM prompts]
+  APP --> UTILS[utils/\nLogger and JSON helpers]
+```
+
+#### 2. High-Level Architecture
+This is the main idea of the whole project: both the CLI and API go through the same service layer.
+
+```mermaid
+flowchart LR
+  USER[User] --> CLI[CLI\npython run.py extract]
+  USER --> API[API\nPOST /extract]
+
+  CLI --> MAIN[app/main.py]
+  API --> MAIN
+
+  MAIN --> SERVICE[ExtractionService]
+  SERVICE --> EXTRACTOR{Extractor}
+
+  EXTRACTOR --> LLM[LLMExtractor\nOpenAI + instructor]
+  EXTRACTOR --> MOCK[MockExtractor\nTesting / local dev]
+
+  LLM --> SCHEMA[ExtractionOutput\nPydantic schema]
+  MOCK --> SCHEMA
+  SCHEMA --> JSON[Structured JSON result]
+```
+
+#### 3. Runtime Request Flow
+This shows what happens after a piece of text enters the system.
+
+```mermaid
+sequenceDiagram
+  participant User
+  participant Entry as CLI or API
+  participant Main as app/main.py
+  participant Service as ExtractionService
+  participant Extractor as LLMExtractor
+  participant Model as OpenAI Model
+  participant Schema as ExtractionOutput
+
+  User->>Entry: Provide unstructured text
+  Entry->>Main: Call command or endpoint
+  Main->>Service: process(text)
+  Service->>Service: Validate non-empty input
+  Service->>Extractor: extract(text)
+  Extractor->>Model: Send prompt + text
+  Model-->>Extractor: Structured response
+  Extractor-->>Schema: Validate with Pydantic
+  Schema-->>Main: ExtractionOutput object
+  Main-->>User: JSON output or API response
+```
+
+#### 4. Test and Development Flow
+This explains why the project has both a real extractor and a mock extractor.
+
+```mermaid
+flowchart LR
+  DEV[Developer] --> TEST[Test files]
+  TEST --> SERVICE[ExtractionService]
+  SERVICE --> MOCK[MockExtractor]
+  MOCK --> RESULT[Fake but valid ExtractionOutput]
+
+  PROD[Production use] --> SERVICE2[ExtractionService]
+  SERVICE2 --> LLM[LLMExtractor]
+  LLM --> OPENAI[OpenAI API]
+  OPENAI --> RESULT2[Real ExtractionOutput]
+```
+
+#### How to Read This Project
+- Start from `run.py` if you want to know how the program starts.
+- Read `app/main.py` to understand the CLI commands and API routes.
+- Read `app/services/extraction_service.py` to see the core workflow.
+- Read `app/extractors/` to learn how the project swaps between real and mock extraction.
+- Read `app/schemas/extraction.py` to understand the final JSON structure.
+
 ### 🛠️ Quick Start
 
 #### Setup
@@ -80,6 +173,99 @@ This is a **Structured Data Extraction Tool** based on Large Language Models (LL
 - **`app/schemas/`**: 資料模型定義。
 - **`app/prompts/`**: 集中管理 LLM 提示詞。
 - **`app/utils/`**: Logger、JSON 處理等通用工具。
+
+### 🗺️ 架構流程圖
+
+#### 1. 專案地圖
+這張圖先幫你看懂：重要檔案在哪裡、每個資料夾主要負責什麼。
+
+```mermaid
+flowchart TD
+  ROOT[ai-fast-track/] --> README[README.md\n專案總覽]
+  ROOT --> RUN[run.py\nCLI 入口]
+  ROOT --> ENV[.env.example\n環境變數範本]
+  ROOT --> REQ[requirements.txt\nPython 套件清單]
+  ROOT --> APP[app/\n應用程式主體]
+  ROOT --> TESTS[tests/\n自動化測試]
+
+  APP --> MAIN[main.py\nFastAPI + Typer 指令]
+  APP --> CONFIG[config.py\n讀取環境設定]
+  APP --> SERVICES[services/\n業務流程編排]
+  APP --> EXTRACTORS[extractors/\nLLM 與 Mock 抽取器]
+  APP --> SCHEMAS[schemas/\nPydantic 資料模型]
+  APP --> PROMPTS[prompts/\n提示詞]
+  APP --> UTILS[utils/\nLogger 與 JSON 工具]
+```
+
+#### 2. 整體架構圖
+這張圖是整個專案最重要的概念：不管你是走 CLI 還是 API，最後都會進到同一個 Service。
+
+```mermaid
+flowchart LR
+  USER[使用者] --> CLI[CLI\npython run.py extract]
+  USER --> API[API\nPOST /extract]
+
+  CLI --> MAIN[app/main.py]
+  API --> MAIN
+
+  MAIN --> SERVICE[ExtractionService]
+  SERVICE --> EXTRACTOR{Extractor}
+
+  EXTRACTOR --> LLM[LLMExtractor\nOpenAI + instructor]
+  EXTRACTOR --> MOCK[MockExtractor\n測試 / 本機開發]
+
+  LLM --> SCHEMA[ExtractionOutput\nPydantic 結構]
+  MOCK --> SCHEMA
+  SCHEMA --> JSON[結構化 JSON 結果]
+```
+
+#### 3. 執行流程圖
+這張圖是「輸入一段文字之後，系統內部到底怎麼跑」。
+
+```mermaid
+sequenceDiagram
+  participant User as 使用者
+  participant Entry as CLI 或 API
+  participant Main as app/main.py
+  participant Service as ExtractionService
+  participant Extractor as LLMExtractor
+  participant Model as OpenAI 模型
+  participant Schema as ExtractionOutput
+
+  User->>Entry: 輸入非結構化文字
+  Entry->>Main: 呼叫指令或 API endpoint
+  Main->>Service: process(text)
+  Service->>Service: 檢查文字不可為空
+  Service->>Extractor: extract(text)
+  Extractor->>Model: 傳送 prompt 與文字
+  Model-->>Extractor: 回傳結構化內容
+  Extractor-->>Schema: 用 Pydantic 驗證格式
+  Schema-->>Main: 回傳 ExtractionOutput 物件
+  Main-->>User: 輸出 JSON / API 回應
+```
+
+#### 4. 測試與開發流程圖
+這張圖說明：為什麼專案同時有真的 `LLMExtractor`，也有假的 `MockExtractor`。
+
+```mermaid
+flowchart LR
+  DEV[開發者] --> TEST[測試檔]
+  TEST --> SERVICE[ExtractionService]
+  SERVICE --> MOCK[MockExtractor]
+  MOCK --> RESULT[假的但合法的 ExtractionOutput]
+
+  PROD[正式使用] --> SERVICE2[ExtractionService]
+  SERVICE2 --> LLM[LLMExtractor]
+  LLM --> OPENAI[OpenAI API]
+  OPENAI --> RESULT2[真的 ExtractionOutput]
+```
+
+#### 怎麼讀這個專案
+- 先從 `run.py` 看程式怎麼啟動。
+- 再看 `app/main.py`，理解 CLI 指令和 API 路由。
+- 接著看 `app/services/extraction_service.py`，它是主流程的中樞。
+- 再看 `app/extractors/`，理解真實抽取與假資料抽取怎麼切換。
+- 最後看 `app/schemas/extraction.py`，理解最後輸出的 JSON 長什麼樣。
 
 ### 🛠️ 快速開始
 
