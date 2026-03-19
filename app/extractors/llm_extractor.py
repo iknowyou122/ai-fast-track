@@ -17,7 +17,10 @@ class LLMExtractor(BaseExtractor):
         self.model = config.get_model(self.provider, model)
         self.client = None
 
-    def _build_client(self):
+    def _build_client(self) -> instructor.Instructor:
+        """
+        Build and patch the OpenAI client with instructor.
+        """
         api_key = config.get_api_key(self.provider)
 
         if not api_key:
@@ -36,7 +39,10 @@ class LLMExtractor(BaseExtractor):
 
         return instructor.patch(OpenAI(**client_kwargs))
 
-    def _get_client(self):
+    def _get_client(self) -> instructor.Instructor:
+        """
+        Lazy-load the patched OpenAI client.
+        """
         if self.client is None:
             self.client = self._build_client()
 
