@@ -1,6 +1,11 @@
 import pytest
 from app.services.extraction_service import ExtractionService
 from app.extractors.mock_extractor import MockExtractor
+from app.extractors.pipeline_extractor import PipelineExtractor
+
+def test_extraction_service_default_extractor():
+    service = ExtractionService()
+    assert isinstance(service.extractor, PipelineExtractor)
 
 def test_extraction_service_with_mock():
     mock_extractor = MockExtractor()
