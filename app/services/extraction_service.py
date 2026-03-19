@@ -1,4 +1,3 @@
-from typing import Optional
 from app.extractors.llm_extractor import LLMExtractor
 from app.schemas.extraction import ExtractionOutput
 

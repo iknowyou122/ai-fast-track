@@ -19,7 +19,7 @@ This is a **Structured Data Extraction Tool** based on Large Language Models (LL
 - **Dual Interface**: Supports both high-efficiency **CLI** commands and a powerful **FastAPI** server.
 - **Structural Validation**: Uses Pydantic to ensure all outputs match predefined data contracts.
 - **Flexible Extractor Design**:
-    - `LLMExtractor`: Precise extraction using OpenAI + `instructor`.
+    - `LLMExtractor`: Precise extraction using OpenAI or Gemini + `instructor`.
     - `MockExtractor`: For development and testing without an API Key.
 - **Prompt Decoupling**: Independent `prompts/` module for easy optimization of LLM results.
 
@@ -67,7 +67,7 @@ flowchart LR
   MAIN --> SERVICE[ExtractionService]
   SERVICE --> EXTRACTOR{Extractor}
 
-  EXTRACTOR --> LLM[LLMExtractor\nOpenAI + instructor]
+  EXTRACTOR --> LLM[LLMExtractor\nOpenAI / Gemini + instructor]
   EXTRACTOR --> MOCK[MockExtractor\nTesting / local dev]
 
   LLM --> SCHEMA[ExtractionOutput\nPydantic schema]
@@ -138,7 +138,22 @@ flowchart LR
 3. **Environment Variables**:
    ```bash
    cp .env.example .env
-   # Add your OPENAI_API_KEY to .env
+   # Pick a provider and add the matching API key to .env
+   ```
+
+   OpenAI example:
+   ```env
+   LLM_PROVIDER=openai
+   OPENAI_API_KEY=your_openai_api_key_here
+   OPENAI_MODEL=gpt-4o
+   ```
+
+   Gemini example:
+   ```env
+   LLM_PROVIDER=gemini
+   GEMINI_API_KEY=your_gemini_api_key_here
+   GEMINI_MODEL=gemini-1.5-flash
+   GEMINI_BASE_URL=https://generativelanguage.googleapis.com/v1beta/openai/
    ```
 
 #### Usage
@@ -163,7 +178,7 @@ flowchart LR
 - **雙介面支持**：同時提供高效的 **CLI** 指令與強大的 **FastAPI** 伺服器。
 - **結構化校驗**：利用 Pydantic 確保所有輸出均符合預定義的資料合約。
 - **靈活的 Extractor 設計**：
-    - `LLMExtractor`：使用 OpenAI + `instructor` 進行精準提取。
+    - `LLMExtractor`：使用 OpenAI 或 Gemini + `instructor` 進行精準提取。
     - `MockExtractor`：用於開發與測試，無需 API Key 即可快速驗證流程。
 - **提示詞解耦**：獨立的 `prompts/` 模組，方便優化 LLM 的提取效果。
 
@@ -211,7 +226,7 @@ flowchart LR
   MAIN --> SERVICE[ExtractionService]
   SERVICE --> EXTRACTOR{Extractor}
 
-  EXTRACTOR --> LLM[LLMExtractor\nOpenAI + instructor]
+  EXTRACTOR --> LLM[LLMExtractor\nOpenAI / Gemini + instructor]
   EXTRACTOR --> MOCK[MockExtractor\n測試 / 本機開發]
 
   LLM --> SCHEMA[ExtractionOutput\nPydantic 結構]
@@ -272,7 +287,22 @@ flowchart LR
 #### 環境設定
 1. **建立虛擬環境**：`python -m venv .venv`
 2. **安裝依賴**：`pip install -r requirements.txt`
-3. **設定變數**：`cp .env.example .env` 並填入 `OPENAI_API_KEY`
+3. **設定變數**：`cp .env.example .env`，再依你要用的供應商填入對應金鑰
+
+   OpenAI 範例：
+   ```env
+   LLM_PROVIDER=openai
+   OPENAI_API_KEY=your_openai_api_key_here
+   OPENAI_MODEL=gpt-4o
+   ```
+
+   Gemini 範例：
+   ```env
+   LLM_PROVIDER=gemini
+   GEMINI_API_KEY=your_gemini_api_key_here
+   GEMINI_MODEL=gemini-1.5-flash
+   GEMINI_BASE_URL=https://generativelanguage.googleapis.com/v1beta/openai/
+   ```
 
 #### 執行方式
 - **CLI**: `python run.py extract "文字內容"`
