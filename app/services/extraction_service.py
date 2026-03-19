@@ -1,4 +1,4 @@
-from app.extractors.llm_extractor import LLMExtractor
+from app.extractors.pipeline_extractor import PipelineExtractor
 from app.schemas.extraction import ExtractionOutput
 
 class ExtractionService:
@@ -9,7 +9,7 @@ class ExtractionService:
         """
         Initialize the service with an extractor.
         """
-        self.extractor = extractor or LLMExtractor()
+        self.extractor = extractor or PipelineExtractor()
 
     def process(self, text: str) -> ExtractionOutput:
         """
