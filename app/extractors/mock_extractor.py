@@ -10,6 +10,7 @@ class MockExtractor(BaseExtractor):
         Return mock extraction data.
         """
         return ExtractionOutput(
+            document_type="general",
             summary=f"This is a mock summary of: {text[:20]}...",
             key_entities=["Mock Entity 1", "Mock Entity 2"],
             action_items=["Mock Action 1"],

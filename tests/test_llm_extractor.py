@@ -23,6 +23,7 @@ def test_openai_provider_uses_openai_key(monkeypatch):
         def create(self, **kwargs):
             captured["create_kwargs"] = kwargs
             return kwargs["response_model"](
+                document_type="general",
                 summary="ok",
                 key_entities=["OpenAI"],
                 action_items=["Ship feature"],
@@ -60,6 +61,7 @@ def test_gemini_provider_uses_compatible_base_url(monkeypatch):
         def create(self, **kwargs):
             captured["create_kwargs"] = kwargs
             return kwargs["response_model"](
+                document_type="news",
                 summary="ok",
                 key_entities=["Gemini"],
                 action_items=["Run extraction"],
