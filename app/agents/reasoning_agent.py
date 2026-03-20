@@ -16,22 +16,18 @@ CRITICAL INSTRUCTION:
 Rules for reasoning:
 1. For EACH claim in the CLAIMS list, compare it with the provided evidence.
 2. Determine a verdict for each claim (e.g., Supported, Refuted, Partially Supported, or Unverified).
-3. Provide a brief reasoning for each claim's verdict.
-4. Populate the `claims_verified` list with a dictionary for EACH claim containing:
-   - "claim": The text of the claim (in the original language).
-   - "verdict": Your verdict (in the original language).
-   - "reasoning": Your explanation based on the evidence (in the original language).
-5. Calculate a 'total_reliability_score' (0-100) for the article based on:
+3. Populate the `claims_verified` list. You MUST include an entry for EVERY claim provided in the input CLAIMS list.
+4. Calculate a 'total_reliability_score' (0-100) for the article based on:
    - The proportion of Supported vs Refuted/Misleading claims.
    - The author's historical reliability score.
    - The credibility of the evidence sources.
-6. Provide a 'final_verdict' for the article (in the original language).
-7. Generate a concise 'article_summary' (in the original language).
+5. Provide a 'final_verdict' for the article.
+6. Generate a concise 'article_summary'.
 
 The author's profile should weight into the final reliability score.
 If an author has a low historical score, be more skeptical of unverified claims.
 
-Ensure the final response is a valid FactCheckReport object with all required fields.
+Ensure the final response is a valid FactCheckReport object with all required fields, especially `claims_verified`.
 """
 
 

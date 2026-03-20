@@ -56,15 +56,25 @@ class ContentExtractor:
     async def _extract_from_url(self, url: str) -> ContentExtractionResult:
         """Helper to extract content from a URL using Crawl4AI."""
         try:
-            md_generator = DefaultMarkdownGenerator()
+            from crawl4ai import CrawlerRunConfig
+            
+            # Configure high-precision extraction targeting common news containers
+            run_config = CrawlerRunConfig(
+                magic=True,
+                cache_mode="BYPASS",
+                # Targeting Yahoo and general news article bodies
+                css_selector=".caas-body, article, main, .article-content",
+                markdown_generator=DefaultMarkdownGenerator(
+                    options={"ignore_links": False, "ignore_images": True}
+                )
+            )
             
             async with AsyncWebCrawler() as crawler:
                 # Use asyncio.wait_for to enforce the timeout
                 result = await asyncio.wait_for(
                     crawler.arun(
                         url=url,
-                        magic=True,
-                        markdown_generator=md_generator
+                        config=run_config
                     ),
                     timeout=self.timeout
                 )
@@ -72,17 +82,40 @@ class ContentExtractor:
                 if not result.success:
                     return self._error_result(result.error_message or "Unknown crawl error", "url")
                 
-                # Extract metadata from Crawl4AI result
+                # Extract metadata from Crawl4AI's parsed structure
                 metadata = result.metadata or {}
-                title = metadata.get("title") or self.DEFAULT_TITLE
-                author = metadata.get("author") or self.DEFAULT_AUTHOR
-                date = metadata.get("date") or self.DEFAULT_DATE
+                
+                # Title resolution: prioritize common meta tags
+                title = (
+                    metadata.get("og:title") or 
+                    metadata.get("title") or 
+                    metadata.get("dc.title") or 
+                    self.DEFAULT_TITLE
+                )
+                
+                # Author resolution
+                author = (
+                    metadata.get("author") or 
+                    metadata.get("article:author") or 
+                    metadata.get("og:author") or 
+                    metadata.get("twitter:creator") or 
+                    self.DEFAULT_AUTHOR
+                )
+                
+                # Date resolution
+                date = (
+                    metadata.get("article:published_time") or 
+                    metadata.get("published_time") or 
+                    metadata.get("date") or 
+                    metadata.get("og:pubdate") or 
+                    self.DEFAULT_DATE
+                )
                 
                 return {
                     "text": result.markdown or "",
-                    "title": title,
-                    "author": author,
-                    "date": date,
+                    "title": str(title),
+                    "author": str(author),
+                    "date": str(date),
                     "type": "url",
                     "error": None
                 }

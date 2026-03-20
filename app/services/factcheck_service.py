@@ -32,7 +32,7 @@ class FactCheckCoordinator:
         
         Args:
             input_data: A URL string or raw article text.
-            progress_callback: Optional callable for reporting progress steps.
+            progress_callback: Optional callable for reporting progress steps and data.
             
         Returns:
             A FactCheckReport containing the final analysis and verdict.
@@ -43,14 +43,18 @@ class FactCheckCoordinator:
         if extraction_result.get("error"):
             pass
             
+        if progress_callback: progress_callback("✅ 內容提取完成", data=extraction_result)
+
         article_text = extraction_result["text"]
         author_name = extraction_result["author"]
 
         if progress_callback: progress_callback("🧠 [Task 2/4] 正在拆解關鍵聲明 (Claims)...")
         # 2. Decompose article into verifiable claims
         claims: List[Claim] = self.decomposer.decompose(article_text)
+        
+        if progress_callback: progress_callback(f"✅ 成功拆解出 {len(claims)} 個聲明", data=claims)
 
-        if progress_callback: progress_callback(f"🌐 [Task 3/4] 正在為 {len(claims)} 個聲明搜尋證據與分析作者...")
+        if progress_callback: progress_callback(f"🌐 [Task 3/4] 正在搜尋證據與分析作者...")
         # 3. Perform Search (for evidence) and Author Analysis in parallel
         search_tasks = [self.search_agent.search(claim) for claim in claims]
         author_task = self.author_agent.get_profile(author_name)
@@ -64,6 +68,8 @@ class FactCheckCoordinator:
             evidence for claim_evidences in evidences_nested 
             for evidence in claim_evidences
         ]
+
+        if progress_callback: progress_callback("✅ 證據搜尋與作者分析完成", data={"evidences": all_evidences, "author": author_profile})
 
         if progress_callback: progress_callback("⚖️ [Task 4/4] 正在進行邏輯推理與可靠性評分...")
         # 4. Reason over claims, evidence, and author profile to produce the final report

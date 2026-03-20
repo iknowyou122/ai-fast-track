@@ -30,6 +30,14 @@ class AuthorProfile(BaseModel):
     reliability_assessment: str = Field("Unknown", description="A qualitative assessment of the author's reliability.")
     trust_level: str = Field("Neutral", description="A categorization of the author's trust level (e.g., Low, Neutral, High).")
 
+class ClaimVerification(BaseModel):
+    """
+    Represents the verification result for a single claim.
+    """
+    claim: str = Field(..., description="The original text of the claim.")
+    verdict: str = Field(..., description="The verdict (e.g., Supported, Refuted, Partially Supported, Unverified).")
+    reasoning: str = Field(..., description="The detailed reasoning based on evidence.")
+
 class FactCheckReport(BaseModel):
     """
     The final report generated after verifying claims in an article.
@@ -37,7 +45,7 @@ class FactCheckReport(BaseModel):
     article_title: Optional[str] = Field(None, description="The title of the original article.")
     article_date: Optional[str] = Field(None, description="The publication date of the article.")
     article_summary: str = Field(..., description="A concise summary of the article's main narrative.")
-    claims_verified: List[Dict[str, Any]] = Field(..., description="A list of claims and their verification results.")
+    claims_verified: List[ClaimVerification] = Field(..., description="A list of claims and their verification results.")
     author_background: AuthorProfile = Field(..., description="The reliability profile of the article's author.")
     total_reliability_score: int = Field(..., description="An overall reliability score for the article from 0 to 100.")
     final_verdict: str = Field(..., description="The final qualitative verdict on the article's factual accuracy.")
