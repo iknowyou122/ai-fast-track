@@ -8,3 +8,6 @@ python-dotenv
 litellm
 httpx
 beautifulsoup4
+rich
+crawl4ai
+playwright
