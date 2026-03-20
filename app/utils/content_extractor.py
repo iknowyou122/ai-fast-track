@@ -1,7 +1,7 @@
-import httpx
-from bs4 import BeautifulSoup
 from typing import Dict, TypedDict, Optional
 import logging
+from crawl4ai import AsyncWebCrawler
+from crawl4ai.markdown_generation_strategy import DefaultMarkdownGenerator
 
 logger = logging.getLogger(__name__)
 
@@ -10,27 +10,22 @@ class ContentExtractionResult(TypedDict):
     text: str
     title: str
     author: str
+    date: str
     type: str
     error: Optional[str]
 
 class ContentExtractor:
     """
     Utility for extracting content from URLs or raw text.
-    Handles basic HTML cleaning and metadata extraction.
+    Handles basic HTML cleaning and metadata extraction using Crawl4AI.
     """
     
     DEFAULT_TITLE = "Untitled"
     DEFAULT_AUTHOR = "Unknown"
+    DEFAULT_DATE = "Unknown"
     
     def __init__(self, timeout: float = 10.0):
         self.timeout = timeout
-        self.headers = {
-            "User-Agent": (
-                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
-                "AppleWebKit/537.36 (KHTML, like Gecko) "
-                "Chrome/91.0.4472.124 Safari/537.36"
-            )
-        }
 
     async def extract(self, input_data: str) -> ContentExtractionResult:
         """
@@ -40,13 +35,14 @@ class ContentExtractor:
             input_data: A URL starting with 'http' or raw text.
             
         Returns:
-            A ContentExtractionResult dictionary containing 'text', 'title', 'author', 'type', and 'error'.
+            A ContentExtractionResult dictionary containing 'text', 'title', 'author', 'date', 'type', and 'error'.
         """
         if not input_data:
             return {
                 "text": "",
                 "title": self.DEFAULT_TITLE,
                 "author": self.DEFAULT_AUTHOR,
+                "date": self.DEFAULT_DATE,
                 "type": "error",
                 "error": "Input data is empty"
             }
@@ -57,41 +53,34 @@ class ContentExtractor:
         return self._extract_from_text(input_data)
 
     async def _extract_from_url(self, url: str) -> ContentExtractionResult:
-        """Helper to extract content from a URL."""
+        """Helper to extract content from a URL using Crawl4AI."""
         try:
-            async with httpx.AsyncClient(timeout=self.timeout, headers=self.headers) as client:
-                resp = await client.get(url, follow_redirects=True)
-                # Ensure the response is successful
-                resp.raise_for_status()
+            md_generator = DefaultMarkdownGenerator()
+            
+            async with AsyncWebCrawler() as crawler:
+                result = await crawler.arun(
+                    url=url,
+                    magic=True,
+                    markdown_generator=md_generator
+                )
                 
-                soup = BeautifulSoup(resp.text, 'html.parser')
+                if not result.success:
+                    return self._error_result(result.error_message or "Unknown crawl error", "url")
                 
-                # Simple cleaning: remove script and style elements
-                for s in soup(['script', 'style']):
-                    s.decompose()
-                
-                # Extract text with space separator
-                text = soup.get_text(separator=' ', strip=True)
-                
-                # Extract title, fallback to "Untitled"
-                title = self._get_title(soup)
-                
-                # Basic author extraction
-                author = self._get_author(soup)
+                # Extract metadata from Crawl4AI result
+                metadata = result.metadata or {}
+                title = metadata.get("title") or self.DEFAULT_TITLE
+                author = metadata.get("author") or self.DEFAULT_AUTHOR
+                date = metadata.get("date") or self.DEFAULT_DATE
                 
                 return {
-                    "text": text,
+                    "text": result.markdown or "",
                     "title": title,
                     "author": author,
+                    "date": date,
                     "type": "url",
                     "error": None
                 }
-        except httpx.HTTPStatusError as e:
-            logger.error(f"HTTP error occurred while fetching {url}: {e}")
-            return self._error_result(f"HTTP Error {e.response.status_code}", "url")
-        except httpx.TimeoutException:
-            logger.error(f"Timeout occurred while fetching {url}")
-            return self._error_result("Connection timeout", "url")
         except Exception as e:
             logger.error(f"Unexpected error while fetching {url}: {e}")
             return self._error_result(str(e), "url")
@@ -102,39 +91,10 @@ class ContentExtractor:
             "text": text,
             "title": "Raw Text",
             "author": self.DEFAULT_AUTHOR,
+            "date": self.DEFAULT_DATE,
             "type": "text",
             "error": None
         }
-
-    def _get_title(self, soup: BeautifulSoup) -> str:
-        """Extract title from BeautifulSoup object."""
-        # Try <title> tag
-        if soup.title and soup.title.string:
-            return soup.title.string.strip()
-        
-        # Try og:title
-        og_title = soup.find("meta", {"property": "og:title"})
-        if og_title and og_title.get("content"):
-            return str(og_title["content"]).strip()
-            
-        return self.DEFAULT_TITLE
-
-    def _get_author(self, soup: BeautifulSoup) -> str:
-        """Extract author from BeautifulSoup object."""
-        # Common author tags
-        author_tags = [
-            ("meta", {"name": "author"}),
-            ("meta", {"property": "article:author"}),
-            ("meta", {"property": "og:author"}),
-            ("meta", {"name": "twitter:creator"}),
-        ]
-        
-        for tag, attrs in author_tags:
-            found = soup.find(tag, attrs)
-            if found and found.get("content"):
-                return str(found["content"]).strip()
-        
-        return self.DEFAULT_AUTHOR
 
     def _error_result(self, error_msg: str, input_type: str) -> ContentExtractionResult:
         """Standard error result."""
@@ -142,6 +102,7 @@ class ContentExtractor:
             "text": "",
             "title": self.DEFAULT_TITLE,
             "author": self.DEFAULT_AUTHOR,
+            "date": self.DEFAULT_DATE,
             "type": input_type,
             "error": error_msg
         }

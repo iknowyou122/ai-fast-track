@@ -64,18 +64,37 @@ def extract(text: str = typer.Argument(..., help="Unstructured text to extract i
         logger.error(f"CLI extraction failed: {str(e)}")
         typer.echo(f"Error: {str(e)}", err=True)
 
+from rich.console import Console
+from rich.status import Status
+from rich.syntax import Syntax
+
+console = Console()
+
 @cli.command(name="fact-check")
 def fact_check_cli(input_data: str = typer.Argument(..., help="URL or text to fact-check")):
     """
-    Perform full fact-check via CLI.
+    Perform full fact-check via CLI with progress display.
     """
     logger.info(f"Starting CLI fact-check for: {input_data[:50]}...")
-    try:
-        result = asyncio.run(factcheck_service.fact_check(input_data))
-        typer.echo(result.model_dump_json(indent=2))
-    except Exception as e:
-        logger.error(f"CLI fact-check failed: {str(e)}")
-        typer.echo(f"Error: {str(e)}", err=True)
+
+    async def run_check():
+        with Status("[bold blue]🚀 啟動查核引擎...", console=console, spinner="dots") as status:
+            def update_progress(msg: str):
+                status.update(f"[bold blue]{msg}")
+            
+            try:
+                result = await factcheck_service.fact_check(input_data, progress_callback=update_progress)
+                console.print("\n[bold green]✅ 查核完成！[/bold green]")
+                
+                # Use syntax highlighting for the JSON output
+                json_str = result.model_dump_json(indent=2)
+                syntax = Syntax(json_str, "json", theme="monokai", line_numbers=True)
+                console.print(syntax)
+            except Exception as e:
+                logger.error(f"CLI fact-check failed: {str(e)}")
+                console.print(f"\n[bold red]❌ 錯誤: {str(e)}[/bold red]")
+
+    asyncio.run(run_check())
 
 
 @cli.command()

@@ -28,6 +28,7 @@ async def test_fact_check_orchestration(mock_agents):
         text="Sample article text",
         title="Sample Title",
         author="John Doe",
+        date="2023-10-27",
         type="text",
         error=None
     ))

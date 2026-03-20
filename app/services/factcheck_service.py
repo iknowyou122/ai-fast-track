@@ -26,50 +26,46 @@ class FactCheckCoordinator:
         self.author_agent = AuthorAgent(db=author_db)
         self.reasoning_agent = ReasoningAgent()
 
-    async def fact_check(self, input_data: str) -> FactCheckReport:
+    async def fact_check(self, input_data: str, progress_callback=None) -> FactCheckReport:
         """
         Perform a full fact-check on the provided input (URL or raw text).
         
         Args:
             input_data: A URL string or raw article text.
+            progress_callback: Optional callable for reporting progress steps.
             
         Returns:
             A FactCheckReport containing the final analysis and verdict.
         """
+        if progress_callback: progress_callback("🔍 [Task 1/4] 正在提取文章內容...")
         # 1. Extract content and metadata (title, author)
         extraction_result = await self.extractor.extract(input_data)
         if extraction_result.get("error"):
-            # If extraction failed, we can still proceed with raw text if possible,
-            # or raise an exception. For now, we'll use whatever text was extracted.
             pass
             
         article_text = extraction_result["text"]
         author_name = extraction_result["author"]
 
+        if progress_callback: progress_callback("🧠 [Task 2/4] 正在拆解關鍵聲明 (Claims)...")
         # 2. Decompose article into verifiable claims
-        # Note: decompose is synchronous in the provided implementation.
         claims: List[Claim] = self.decomposer.decompose(article_text)
 
+        if progress_callback: progress_callback(f"🌐 [Task 3/4] 正在為 {len(claims)} 個聲明搜尋證據與分析作者...")
         # 3. Perform Search (for evidence) and Author Analysis in parallel
-        # We gather evidence for each claim concurrently.
         search_tasks = [self.search_agent.search(claim) for claim in claims]
-        
-        # Also retrieve author profile concurrently
         author_task = self.author_agent.get_profile(author_name)
         
-        # Use asyncio.gather to run all search tasks and the author task in parallel
         results = await asyncio.gather(*search_tasks, author_task)
         
-        # Unpack results: results[:-1] are lists of evidence, results[-1] is author profile
         evidences_nested: List[List[Evidence]] = results[:-1]
         author_profile = results[-1]
         
-        # Flatten evidence list
         all_evidences: List[Evidence] = [
             evidence for claim_evidences in evidences_nested 
             for evidence in claim_evidences
         ]
 
+        if progress_callback: progress_callback("⚖️ [Task 4/4] 正在進行邏輯推理與可靠性評分...")
         # 4. Reason over claims, evidence, and author profile to produce the final report
         report: FactCheckReport = await self.reasoning_agent.reason(
             claims=claims, 
@@ -77,8 +73,11 @@ class FactCheckCoordinator:
             author=author_profile
         )
 
-        # Ensure the report includes the article title from extraction
+        # Ensure the report includes the article title and date from extraction
         if not report.article_title:
             report.article_title = extraction_result["title"]
+        
+        if not report.article_date:
+            report.article_date = extraction_result["date"]
 
         return report

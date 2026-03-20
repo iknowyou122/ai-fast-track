@@ -2,6 +2,7 @@ import pytest
 import respx
 import httpx
 from httpx import Response
+from unittest.mock import AsyncMock, patch, MagicMock
 from app.utils.content_extractor import ContentExtractor
 
 @pytest.mark.asyncio
@@ -24,77 +25,77 @@ async def test_extract_empty_input():
     assert "empty" in result["error"]
 
 @pytest.mark.asyncio
-@respx.mock
-async def test_extract_url(respx_mock):
-    url = "https://example.com/news"
-    html_content = """
-    <html>
-        <head>
-            <title>News Title</title>
-            <meta name="author" content="Jane Doe">
-        </head>
-        <body>
-            <style>.ads { color: red; }</style>
-            <h1>Main Story</h1>
-            <p>This is the news content.</p>
-            <script>console.log('test');</script>
-        </body>
-    </html>
-    """
-    respx_mock.get(url).mock(return_value=Response(200, text=html_content))
+@patch("app.utils.content_extractor.AsyncWebCrawler")
+async def test_extract_url_with_crawl4ai(mock_crawler_class):
+    # Setup mock
+    mock_crawler = AsyncMock()
+    mock_crawler_class.return_value.__aenter__.return_value = mock_crawler
     
+    mock_result = MagicMock()
+    mock_result.success = True
+    mock_result.error_message = None
+    mock_result.markdown = "This is the news content."
+    mock_result.metadata = {
+        "title": "News Title",
+        "author": "Jane Doe",
+        "date": "2023-10-27"
+    }
+    mock_crawler.arun.return_value = mock_result
+    
+    url = "https://example.com/news"
     extractor = ContentExtractor()
     result = await extractor.extract(url)
     
     assert result["title"] == "News Title"
     assert result["author"] == "Jane Doe"
+    assert result["date"] == "2023-10-27"
     assert result["type"] == "url"
     assert result["error"] is None
-    assert "Main Story" in result["text"]
     assert "This is the news content." in result["text"]
-    assert "console.log" not in result["text"]
-    assert ".ads" not in result["text"]
+    
+    # Verify Magic Mode and Markdown strategy were used
+    args, kwargs = mock_crawler.arun.call_args
+    assert kwargs["magic"] is True
+    assert "markdown_generator" in kwargs
 
 @pytest.mark.asyncio
-@respx.mock
-async def test_extract_url_og_title(respx_mock):
-    url = "https://example.com/og"
-    html_content = """
-    <html>
-        <head>
-            <meta property="og:title" content="OpenGraph Title">
-        </head>
-        <body>Content</body>
-    </html>
-    """
-    respx_mock.get(url).mock(return_value=Response(200, text=html_content))
+@patch("app.utils.content_extractor.AsyncWebCrawler")
+async def test_extract_url_traditional_chinese(mock_crawler_class):
+    # Setup mock with Traditional Chinese content
+    mock_crawler = AsyncMock()
+    mock_crawler_class.return_value.__aenter__.return_value = mock_crawler
     
+    chinese_text = "這是繁體中文內容。不應該被翻譯。"
+    mock_result = MagicMock()
+    mock_result.markdown = chinese_text
+    mock_result.metadata = {
+        "title": "繁體標題",
+        "author": "張三",
+        "date": "2023-10-27"
+    }
+    mock_crawler.arun.return_value = mock_result
+    
+    url = "https://example.com/chinese"
     extractor = ContentExtractor()
     result = await extractor.extract(url)
     
-    assert result["title"] == "OpenGraph Title"
+    assert result["title"] == "繁體標題"
+    assert result["author"] == "張三"
+    assert result["text"] == chinese_text
+    assert result["error"] is None
 
 @pytest.mark.asyncio
-@respx.mock
-async def test_extract_url_404(respx_mock):
-    url = "https://example.com/404"
-    respx_mock.get(url).mock(return_value=Response(404))
+@patch("app.utils.content_extractor.AsyncWebCrawler")
+async def test_extract_url_error(mock_crawler_class):
+    # Setup mock to raise error
+    mock_crawler = AsyncMock()
+    mock_crawler_class.return_value.__aenter__.return_value = mock_crawler
+    mock_crawler.arun.side_effect = Exception("Crawl failed")
     
+    url = "https://example.com/error"
     extractor = ContentExtractor()
     result = await extractor.extract(url)
     
     assert result["type"] == "url"
-    assert "HTTP Error 404" in result["error"]
+    assert "Crawl failed" in result["error"]
     assert result["text"] == ""
-
-@pytest.mark.asyncio
-@respx.mock
-async def test_extract_url_timeout(respx_mock):
-    url = "https://example.com/timeout"
-    respx_mock.get(url).mock(side_effect=httpx.TimeoutException("Timeout"))
-    
-    extractor = ContentExtractor()
-    result = await extractor.extract(url)
-    
-    assert result["type"] == "url"
-    assert "timeout" in result["error"].lower()

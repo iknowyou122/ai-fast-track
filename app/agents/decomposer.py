@@ -6,11 +6,18 @@ from app.extractors.llm_extractor import LLMExtractor
 DECOMPOSITION_PROMPT = """
 You are an expert journalist. Extract all verifiable claims from the following text.
 A verifiable claim is a statement that can be proven true or false with evidence.
+
+CRITICAL INSTRUCTION:
+- Extract claims in their ORIGINAL LANGUAGE. 
+- DO NOT translate the claims into English or any other language. 
+- If the source text is in Traditional Chinese, the claims MUST be in Traditional Chinese.
+- Preserve the original wording as much as possible.
+
 For each claim, provide:
 - id: A unique identifier for the claim (e.g., claim-1).
-- text: The actual claim.
+- text: The actual claim (in the original language).
 - category: One of [factual, statistical, temporal, relational].
-- context: Brief context from the text.
+- context: Brief context from the text (in the original language).
 """
 
 class DecomposerAgent(LLMExtractor):
