@@ -7,6 +7,7 @@ A domain-aware multi-agent system designed to verify news articles. It breaks do
 The system uses an **Orchestrator-Worker** pattern. A central `FactCheckCoordinator` manages the lifecycle of a fact-check request, dispatching tasks to specialized agents.
 
 ### Core Workflow
+0.  **Input Handling**: The system accepts either raw text or a URL. If a URL is provided, the **ContentExtractor** fetches and cleans the article body and attempts to identify the author.
 1.  **Decomposition**: The article is analyzed to extract individual **Claims**.
 2.  **Parallel Evidence Gathering**:
     *   **SearchAgent**: For each claim, parallel search tasks are launched to find supporting or refuting evidence.
@@ -15,6 +16,12 @@ The system uses an **Orchestrator-Worker** pattern. A central `FactCheckCoordina
 4.  **Scoring & Synthesis**: The **ScoringAgent** assigns a reliability score (0-100), and a **SummaryAgent** compiles the final report.
 
 ## Modules & Components
+
+### 0. Content Extractor (`app/utils/content_extractor.py`)
+*   **Role**: Normalize input.
+*   **Behavior**: If input is a URL, fetch content via `httpx` and clean via readability-like logic. Extract author metadata if present.
+*   **Input**: URL or raw text.
+*   **Output**: Cleaned text and detected author name.
 
 ### 1. Decomposer Agent (`app/agents/decomposer.py`)
 *   **Role**: Analyze text and extract verifiable claims.

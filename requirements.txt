@@ -6,3 +6,5 @@ instructor
 openai
 python-dotenv
 litellm
+httpx
+beautifulsoup4
