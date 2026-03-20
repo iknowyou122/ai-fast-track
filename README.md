@@ -161,6 +161,19 @@ flowchart LR
 - **API**: `python run.py serve --port 8000`
 - **Tests**: `export PYTHONPATH=$PYTHONPATH:. && pytest tests/`
 
+### 🧰 Development Tooling
+- **Formatter**: `ruff format`
+- **Linter**: `ruff check`
+- **Type Checker**: `mypy app`
+- **Test Runner**: `pytest`
+- **CI**: GitHub Actions workflow at `.github/workflows/ci.yml`
+
+#### Developer Setup
+```bash
+pip install -r requirements-dev.txt
+make check
+```
+
 ---
 
 <a name="chinese"></a>
@@ -308,3 +321,16 @@ flowchart LR
 - **CLI**: `python run.py extract "文字內容"`
 - **API**: `python run.py serve`
 - **測試**: `export PYTHONPATH=$PYTHONPATH:. && pytest tests/`
+
+### 🧰 開發工具
+- **Formatter**: `ruff format`
+- **Linter**: `ruff check`
+- **Type Checker**: `mypy app`
+- **測試工具**: `pytest`
+- **CI**: `.github/workflows/ci.yml`
+
+#### 開發環境建議
+```bash
+pip install -r requirements-dev.txt
+make check
+```
