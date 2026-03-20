@@ -1,17 +1,17 @@
 from app.schemas.factcheck import AuthorProfile
-from app.db.author_database import AuthorDatabase
+from app.db.author_database import BaseAuthorDB
 
 class AuthorAgent:
     """
     Agent responsible for assessing the reliability of article authors.
-    Utilizes an AuthorDatabase to retrieve historical performance data.
+    Utilizes a BaseAuthorDB instance to retrieve historical performance data.
     """
-    def __init__(self, db: AuthorDatabase):
+    def __init__(self, db: BaseAuthorDB):
         """
         Initialize the AuthorAgent with a database instance.
         
         Args:
-            db: An instance of AuthorDatabase for retrieving profile information.
+            db: An instance of BaseAuthorDB for retrieving profile information.
         """
         self.db = db
 

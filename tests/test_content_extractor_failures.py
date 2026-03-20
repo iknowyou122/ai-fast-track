@@ -11,8 +11,11 @@ async def test_extract_url_404(respx_mock):
     respx_mock.get(url).mock(return_value=Response(404))
     
     extractor = ContentExtractor()
-    with pytest.raises(httpx.HTTPStatusError):
-        await extractor.extract(url)
+    result = await extractor.extract(url)
+    
+    assert result["type"] == "url"
+    assert result["error"] is not None
+    assert "404" in result["error"]
 
 @pytest.mark.asyncio
 @respx.mock
@@ -21,5 +24,8 @@ async def test_extract_url_timeout(respx_mock):
     respx_mock.get(url).mock(side_effect=httpx.TimeoutException("Timeout occurred"))
     
     extractor = ContentExtractor()
-    with pytest.raises(httpx.TimeoutException):
-        await extractor.extract(url)
+    result = await extractor.extract(url)
+    
+    assert result["type"] == "url"
+    assert result["error"] is not None
+    assert "timeout" in result["error"].lower()

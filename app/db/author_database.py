@@ -1,8 +1,18 @@
+from abc import ABC, abstractmethod
 import json
 import os
 from app.schemas.factcheck import AuthorProfile
 
-class AuthorDatabase:
+class BaseAuthorDB(ABC):
+    """
+    Abstract base class for author profile databases.
+    """
+    @abstractmethod
+    def get_author(self, name: str) -> AuthorProfile:
+        """Retrieve an author's profile by name."""
+        pass
+
+class AuthorDatabase(BaseAuthorDB):
     """
     JSON-based mock database for author history and reliability profiles.
     """
