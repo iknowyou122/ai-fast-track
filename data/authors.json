@@ -1,0 +1,16 @@
+{
+    "Jane Doe": {
+        "author_name": "Jane Doe",
+        "historical_score": 85,
+        "total_articles": 12,
+        "reliability_assessment": "Generally reliable with occasional factual errors.",
+        "trust_level": "High"
+    },
+    "John Smith": {
+        "author_name": "John Smith",
+        "historical_score": 42,
+        "total_articles": 5,
+        "reliability_assessment": "Frequent sensationalism and unverified claims.",
+        "trust_level": "Low"
+    }
+}

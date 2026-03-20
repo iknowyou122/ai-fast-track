@@ -1,5 +1,6 @@
 import pytest
 import respx
+import httpx
 from httpx import Response
 from app.utils.content_extractor import ContentExtractor
 
@@ -12,6 +13,15 @@ async def test_extract_raw_text():
     assert result["title"] == "Raw Text"
     assert result["author"] == "Unknown"
     assert result["type"] == "text"
+    assert result["error"] is None
+
+@pytest.mark.asyncio
+async def test_extract_empty_input():
+    extractor = ContentExtractor()
+    result = await extractor.extract("")
+    
+    assert result["type"] == "error"
+    assert "empty" in result["error"]
 
 @pytest.mark.asyncio
 @respx.mock
@@ -39,6 +49,7 @@ async def test_extract_url(respx_mock):
     assert result["title"] == "News Title"
     assert result["author"] == "Jane Doe"
     assert result["type"] == "url"
+    assert result["error"] is None
     assert "Main Story" in result["text"]
     assert "This is the news content." in result["text"]
     assert "console.log" not in result["text"]
@@ -46,15 +57,44 @@ async def test_extract_url(respx_mock):
 
 @pytest.mark.asyncio
 @respx.mock
-async def test_extract_url_no_title(respx_mock):
-    url = "https://example.com/notitle"
-    html_content = "<html><body>No title here</body></html>"
+async def test_extract_url_og_title(respx_mock):
+    url = "https://example.com/og"
+    html_content = """
+    <html>
+        <head>
+            <meta property="og:title" content="OpenGraph Title">
+        </head>
+        <body>Content</body>
+    </html>
+    """
     respx_mock.get(url).mock(return_value=Response(200, text=html_content))
     
     extractor = ContentExtractor()
     result = await extractor.extract(url)
     
-    assert result["title"] == "Untitled"
-    assert result["author"] == "Unknown"
-    assert result["text"] == "No title here"
+    assert result["title"] == "OpenGraph Title"
+
+@pytest.mark.asyncio
+@respx.mock
+async def test_extract_url_404(respx_mock):
+    url = "https://example.com/404"
+    respx_mock.get(url).mock(return_value=Response(404))
+    
+    extractor = ContentExtractor()
+    result = await extractor.extract(url)
+    
     assert result["type"] == "url"
+    assert "HTTP Error 404" in result["error"]
+    assert result["text"] == ""
+
+@pytest.mark.asyncio
+@respx.mock
+async def test_extract_url_timeout(respx_mock):
+    url = "https://example.com/timeout"
+    respx_mock.get(url).mock(side_effect=httpx.TimeoutException("Timeout"))
+    
+    extractor = ContentExtractor()
+    result = await extractor.extract(url)
+    
+    assert result["type"] == "url"
+    assert "timeout" in result["error"].lower()
