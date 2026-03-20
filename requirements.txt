@@ -7,7 +7,6 @@ openai==2.28.0
 python-dotenv==1.2.2
 litellm==1.82.3
 httpx==0.28.1
-beautifulsoup4==4.14.3
 rich==14.3.3
 crawl4ai==0.8.5
 playwright==1.58.0

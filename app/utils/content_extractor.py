@@ -1,3 +1,4 @@
+import asyncio
 from typing import Dict, TypedDict, Optional
 import logging
 from crawl4ai import AsyncWebCrawler
@@ -58,10 +59,14 @@ class ContentExtractor:
             md_generator = DefaultMarkdownGenerator()
             
             async with AsyncWebCrawler() as crawler:
-                result = await crawler.arun(
-                    url=url,
-                    magic=True,
-                    markdown_generator=md_generator
+                # Use asyncio.wait_for to enforce the timeout
+                result = await asyncio.wait_for(
+                    crawler.arun(
+                        url=url,
+                        magic=True,
+                        markdown_generator=md_generator
+                    ),
+                    timeout=self.timeout
                 )
                 
                 if not result.success:
@@ -81,6 +86,9 @@ class ContentExtractor:
                     "type": "url",
                     "error": None
                 }
+        except asyncio.TimeoutError:
+            logger.error(f"Timeout while fetching {url} (limit: {self.timeout}s)")
+            return self._error_result(f"Timeout while fetching {url}", "url")
         except Exception as e:
             logger.error(f"Unexpected error while fetching {url}: {e}")
             return self._error_result(str(e), "url")

@@ -65,27 +65,39 @@ def mock_llm(monkeypatch):
     monkeypatch.setattr("app.config.config.OPENAI_API_KEY", "mock-key")
 
 @pytest.fixture
-def mock_http(monkeypatch):
+def mock_crawler(monkeypatch):
     """
-    Mock HTTP requests for ContentExtractor.
+    Mock Crawl4AI's AsyncWebCrawler.
     """
-    class MockResponse:
-        def __init__(self, text, status_code=200):
-            self.text = text
-            self.status_code = status_code
-        def raise_for_status(self):
-            if self.status_code >= 400:
-                import httpx
-                raise httpx.HTTPStatusError("Error", request=None, response=self)
-
-    async def mock_get(self, url, **kwargs):
-        html = f"<html><title>Extracted Title</title><body><meta name='author' content='Jane Smith'><p>Extracted content from {url}</p></body></html>"
-        return MockResponse(html)
-
-    monkeypatch.setattr("httpx.AsyncClient.get", mock_get)
+    from unittest.mock import AsyncMock, MagicMock
+    
+    mock_crawler = AsyncMock()
+    
+    # Mock context manager
+    mock_instance = MagicMock()
+    mock_instance.__aenter__.return_value = mock_crawler
+    
+    def mock_crawler_init(*args, **kwargs):
+        return mock_instance
+        
+    monkeypatch.setattr("app.utils.content_extractor.AsyncWebCrawler", mock_crawler_init)
+    
+    # Mock arun result
+    mock_result = MagicMock()
+    mock_result.success = True
+    mock_result.error_message = None
+    mock_result.markdown = "Extracted content from URL"
+    mock_result.metadata = {
+        "title": "Extracted Title",
+        "author": "Jane Smith",
+        "date": "2023-10-27"
+    }
+    mock_crawler.arun.return_value = mock_result
+    
+    return mock_crawler
 
 @pytest.mark.asyncio
-async def test_factcheck_pipeline_with_url(mock_llm, mock_http, tmp_path):
+async def test_factcheck_pipeline_with_url(mock_llm, mock_crawler, tmp_path):
     # Setup mock DB
     db_file = tmp_path / "authors.json"
     db_file.write_text("{}")
@@ -100,6 +112,29 @@ async def test_factcheck_pipeline_with_url(mock_llm, mock_http, tmp_path):
     assert report.article_title == "Extracted Title"
     assert len(report.claims_verified) == 2
     assert report.author_background.author_name == "Jane Smith"
+    assert report.total_reliability_score == 10
+
+@pytest.mark.asyncio
+@pytest.mark.integration
+async def test_factcheck_pipeline_with_real_url(mock_llm, tmp_path):
+    """
+    Test with a real URL (example.com). This requires internet access.
+    We still mock the LLM to avoid costs and keep it predictable.
+    """
+    # Setup mock DB
+    db_file = tmp_path / "authors.json"
+    db_file.write_text("{}")
+    db = AuthorDatabase(str(db_file))
+    
+    coordinator = FactCheckCoordinator(author_db=db)
+    
+    # example.com is stable and fast
+    url = "https://example.com"
+    report = await coordinator.fact_check(url)
+    
+    assert isinstance(report, FactCheckReport)
+    assert "Example Domain" in report.article_title
+    assert len(report.claims_verified) == 2
     assert report.total_reliability_score == 10
 
 @pytest.mark.asyncio
